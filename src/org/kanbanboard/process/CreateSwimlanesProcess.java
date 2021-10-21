@@ -30,11 +30,8 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.logging.Level;
 
-import org.compiere.model.MColumn;
-import org.compiere.model.MTable;
 import org.compiere.process.SvrProcess;
 import org.compiere.util.DB;
-import org.compiere.util.DisplayType;
 import org.compiere.util.Msg;
 import org.kanbanboard.model.MKanbanBoard;
 import org.kanbanboard.model.MKanbanSwimlane;
@@ -55,60 +52,21 @@ public class CreateSwimlanesProcess extends SvrProcess {
 
 		
 		MKanbanBoard kanbanBoard = new MKanbanBoard(getCtx(), M_KanbanBoard_ID, get_TrxName());
-		if (kanbanBoard.getKDB_SLColumnTable_ID() == 0 && kanbanBoard.getKDB_SLColumnTable_ID() == 0)
+		if (kanbanBoard.getKDB_SLColumnList_ID() == 0 && kanbanBoard.getKDB_SLColumnTable_ID() == 0)
 			throw new IllegalArgumentException(Msg.getMsg(getCtx(), "KDB_SwimlanesError"));
 		
-		boolean isRefList = true;
-		int columnId = 0;
-		StringBuilder sqlSelect = new StringBuilder();
-
-		MColumn column = null;
-		if (kanbanBoard.getKDB_SLColumnList_ID() != 0) {
-			columnId = kanbanBoard.getKDB_SLColumnList_ID();
-			column = MColumn.get(columnId);
-
-			//Reference List
-			if (column.getAD_Reference_ID() == DisplayType.List) {
-				if (column.getAD_Reference_Value_ID() != 0) {
-					// Reference Key is not a table but a RefList
-					sqlSelect.append("SELECT DISTINCT Name, Value FROM AD_Ref_List ")
-						.append("WHERE AD_Reference_ID = ? AND IsActive = 'Y'");
-				}
-			}
-		} else if (kanbanBoard.getKDB_SLColumnTable_ID() != 0) {
-			columnId = kanbanBoard.getKDB_SLColumnTable_ID();
-			column = MColumn.get(columnId);
-
-			//Table, Table direct or Search Reference
-			if (column.getAD_Reference_ID() == DisplayType.Table ||
-					column.getAD_Reference_ID() == DisplayType.Search ||
-					column.getAD_Reference_ID() == DisplayType.TableDir) {					
-
-				MTable table =  MTable.get(getCtx(), column.getReferenceTableName());
-				String keyColumns[] = table.getKeyColumns();
-				String identifierColumns[] = table.getIdentifierColumns();
-
-				sqlSelect.append("SELECT DISTINCT ").append(identifierColumns[0]).append(", ").append(keyColumns[0])
-					.append(" FROM ").append(table.getTableName())
-					.append(" WHERE ")
-					.append(" AD_Client_ID IN (0, ?) AND")
-					.append(" IsActive = 'Y'");
-			}
-			isRefList=false;
-		}
+		KanbanProcessHelper processHelper = new KanbanProcessHelper(kanbanBoard, false);
+		String sqlSelect = processHelper.getSQLStatement(); 
 
 		PreparedStatement pstmt = null;
 		ResultSet rs = null;
-		int seqno = DB.getSQLValueEx(get_TrxName(), "SELECT MAX(SeqNo) FROM KDB_KanbanSwimlane WHERE KDB_KanbanBoard_ID=?", M_KanbanBoard_ID);
+		int seqno = processHelper.getSeqNo(get_TrxName());
 		int cnt = 0;
 		try {
-			pstmt = DB.prepareStatement(sqlSelect.toString(), get_TrxName());
-			if (isRefList) {
-				pstmt.setInt(1, column.getAD_Reference_Value_ID());
-			} else {
-				pstmt.setInt(1, kanbanBoard.getAD_Client_ID());
-			}
+			pstmt = DB.prepareStatement(sqlSelect, get_TrxName());
+			pstmt.setInt(1, processHelper.getSQLParameter());
 			rs = pstmt.executeQuery();
+			
 			while (rs.next()) {
 				String swimlaneName = rs.getString(1);
 				String reference = rs.getString(2);
@@ -126,7 +84,7 @@ public class CreateSwimlanesProcess extends SvrProcess {
 					MKanbanSwimlane kanbanSwimlane = new MKanbanSwimlane(getCtx(), 0, get_TrxName());
 					kanbanSwimlane.setKDB_KanbanBoard_ID(M_KanbanBoard_ID);
 					kanbanSwimlane.setName(swimlaneName);
-					if (isRefList)
+					if (processHelper.isRefList())
 						kanbanSwimlane.setKDB_SwimlaneListValue(reference);
 					else
 						kanbanSwimlane.setKDB_SwimlaneTableID(reference);
