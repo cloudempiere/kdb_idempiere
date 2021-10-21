@@ -28,6 +28,7 @@ package org.kanbanboard.webui.factory;
 import org.adempiere.base.IProcessFactory;
 import org.compiere.process.ProcessCall;
 import org.kanbanboard.process.CreateStatusProcess;
+import org.kanbanboard.process.CreateSwimlanesProcess;
 
 public class KBProcessFactory implements IProcessFactory{
 
@@ -36,6 +37,9 @@ public class KBProcessFactory implements IProcessFactory{
 
 		if (CreateStatusProcess.class.getName().equals(className))
 			return new CreateStatusProcess();
+		
+		if (CreateSwimlanesProcess.class.getName().equals(className))
+			return new CreateSwimlanesProcess();
 
 		return null;
 	}

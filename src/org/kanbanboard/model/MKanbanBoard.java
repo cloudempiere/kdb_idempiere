@@ -60,6 +60,7 @@ public class MKanbanBoard extends X_KDB_KanbanBoard {
 	private MTable table = MTable.get(getAD_Table_ID());
 	private String keyColumn;
 	private List<MKanbanStatus> statuses = new ArrayList<MKanbanStatus>();
+	private List<MKanbanSwimlane> swimlanes = new ArrayList<MKanbanSwimlane>();
 	private List<MKanbanPriority> priorityRules = new ArrayList<MKanbanPriority>();
 	private int numberOfCards = 0;
 	private boolean isRefList = true;
@@ -226,6 +227,16 @@ public class MKanbanBoard extends X_KDB_KanbanBoard {
 		}
 
 		return statuses;
+	}//getStatuses
+	
+	public List<MKanbanSwimlane> getSwimlanes() {
+		swimlanes = new Query(getCtx(), MKanbanSwimlane.Table_Name, " KDB_KanbanBoard_ID = ? AND AD_Client_ID IN (0, ?) AND IsActive='Y' ", get_TrxName())
+				.setParameters(new Object[]{getKDB_KanbanBoard_ID(),Env.getAD_Client_ID(Env.getCtx())})
+				.setOnlyActiveRecords(true)
+				.setOrderBy("SeqNo")
+				.list();
+
+		return swimlanes;
 	}//getStatuses
 	
 	/**		
