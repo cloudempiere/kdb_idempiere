@@ -752,11 +752,15 @@ public class WKanbanBoard extends KanbanBoard implements IFormController, EventL
 		divStyle.append("text-align: left; ");
 		
 		if (!card.isQueued())
-			divStyle.append("cursor:hand; cursor:pointer; ");
+			divStyle.append("cursor:pointer; ");
 
 		if (getStdCardheight() != 0) {
 			div.setHeight(getStdCardheight() + "px");
 			divStyle.append("overflow:auto");
+		}
+		
+		if (!Util.isEmpty(card.getCardColor())) {
+			divStyle.append("margin-left: 15%;");
 		}
 		
 		div.setStyle(divStyle.toString());
